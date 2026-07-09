@@ -1,0 +1,39 @@
+name: Refresh DoubleDigit tracker
+
+# Lunes, cada hora de 06:00 a 16:00 UTC = 08:00-18:00 Europe/Madrid (verano CEST;
+# en invierno CET la franja local es 07:00-17:00). GitHub usa siempre UTC.
+# build.js solo escribe cuando la última semana cerrada ya está completa en el ETL
+# y en las campañas, así que las ejecuciones anteriores a la carga del ETL no
+# commitean nada y el cron actúa como reintento horario "hasta que haya datos".
+on:
+  schedule:
+    - cron: "0 6-16 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Construir docs/index.html con datos frescos
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_WAREHOUSE_ID: ${{ secrets.DATABRICKS_WAREHOUSE_ID }}
+          SHEET_CSV_URL: ${{ secrets.SHEET_CSV_URL }}
+        run: node build.js
+
+      - name: Commit si hay cambios
+        run: |
+          git config user.name  "dd-tracker-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/index.html
+          git diff --cached --quiet || (git commit -m "chore: DD tracker refresh $(date -u +%F)" && git push)
