@@ -27,7 +27,7 @@ if (!HOST || !TOKEN || !WAREHOUSE || !SHEET_CSV_URL) {
 }
 
 const ROOT = __dirname;
-const FIRST_MONTH = "2026-05"; // primer mes del acuerdo mostrado
+const FIRST_MONTH = "2026-06"; // primer mes publicado (mayo excluido de la versión pública)
 
 const PD = "main.ng_public.etl_partner_data";
 const PDO = "main.ng_public.etl_partner_data_order";

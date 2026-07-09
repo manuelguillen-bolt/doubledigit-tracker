@@ -30,7 +30,7 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Ari
 .hero .kv{font-size:26px;font-weight:800;color:var(--dark);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .hero.money .kv{color:var(--green)}
 .hero .ks{font-size:11px;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.kpi-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:14px}
+.kpi-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;box-shadow:var(--shadow)}
 .kl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;margin-bottom:4px}
 .kv{font-size:17px;font-weight:800;color:var(--dark);white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
@@ -134,7 +134,6 @@ td.sumcol{border-left:3px solid var(--green);background:#f6faf7!important}
         <button data-k="oh" class="on">OH</button>
         <button data-k="gmv">GMV</button>
         <button data-k="eph">EPH</button>
-        <button data-k="ssp">Supply Spend %</button>
       </div>
     </div>
     <div class="chart-body"><canvas id="chart"></canvas></div>
@@ -329,8 +328,7 @@ function renderKpis(d){
   <div class="kpi"><div class="kl">Viajes</div><div class="kv">${fmt(a.rides,0)}</div><div class="ks">${momB(a.rides,p.rides)}</div></div>
   <div class="kpi"><div class="kl">EPH</div><div class="kv">${a.eph!=null?fmtE(a.eph):"—"}</div><div class="ks">${momB(a.eph,p.eph)||"€ / hora online"}</div></div>
   <div class="kpi"><div class="kl">Utilización</div><div class="kv">${a.util!=null?fmt(a.util,1)+"%":"—"}</div><div class="ks">${momB(a.util,p.util)||"con viaje / online"}</div></div>
-  <div class="kpi"><div class="kl">Coches activos</div><div class="kv">${a.active||"—"}</div><div class="ks">${momB(a.active,p.active)||"≥1 viaje en el mes"}</div></div>
-  <div class="kpi"><div class="kl">Supply Spend</div><div class="kv">${a.ssp!=null?fmt(a.ssp,1)+"%":"—"}</div><div class="ks">(branding + fleet) / GMV</div></div>`;
+  <div class="kpi"><div class="kl">Coches activos</div><div class="kv">${a.active||"—"}</div><div class="ks">${momB(a.active,p.active)||"≥1 viaje en el mes"}</div></div>`;
 }
 function paintTog(){
   document.querySelectorAll("#ktog button").forEach(b=>{
@@ -365,7 +363,6 @@ function externalTT(context,d){
     <span>Nivel 1 · Nivel 2</span><b>${w.n1} · ${w.n2}</b>
     <span>Branding Bonus</span><b>${fmtE(w.bonus)}</b>
     <span>Fleet Bonus (DD)</span><b>${fmtE(w.kb)}</b>
-    <span>Supply Spend</span><b>${w.ssp!=null?fmt(w.ssp,1)+"%":"—"}</b>
   </div></div>`;
   el.style.opacity=1;
   const rect=chart.canvas.getBoundingClientRect();
@@ -383,11 +380,10 @@ function renderChart(d){
   const conf={
     oh:{label:"OH",kkey:"oh",kfmt:v=>fmt(v,0)+"h",data:d.weekly.map(w=>w.oh),type:"bar",backgroundColor:KCOLOR.oh,borderRadius:8,maxBarThickness:110,categoryPercentage:.72,barPercentage:.9,yAxisID:"y",order:2},
     gmv:{label:"GMV",kkey:"gmv",kfmt:v=>fmtK(v),data:d.weekly.map(w=>w.gmv),type:"line",borderColor:KCOLOR.gmv,backgroundColor:KCOLOR.gmv,pointRadius:4,pointHoverRadius:6,borderWidth:2.5,yAxisID:"y1",tension:.35,order:1},
-    eph:{label:"EPH",kkey:"eph",kfmt:v=>fmtE(v),data:d.weekly.map(w=>w.eph),type:"line",borderColor:KCOLOR.eph,backgroundColor:KCOLOR.eph,pointRadius:4,pointHoverRadius:6,borderWidth:2.5,yAxisID:"y2",tension:.35,order:1},
-    ssp:{label:"Supply Spend",kkey:"ssp",kfmt:v=>fmt(v,1)+"%",data:d.weekly.map(w=>w.ssp),type:"line",borderColor:KCOLOR.ssp,backgroundColor:KCOLOR.ssp,pointRadius:4,pointHoverRadius:6,borderWidth:2.5,yAxisID:"y3",tension:.35,order:1}
+    eph:{label:"EPH",kkey:"eph",kfmt:v=>fmtE(v),data:d.weekly.map(w=>w.eph),type:"line",borderColor:KCOLOR.eph,backgroundColor:KCOLOR.eph,pointRadius:4,pointHoverRadius:6,borderWidth:2.5,yAxisID:"y2",tension:.35,order:1}
   };
   const rng=vals=>{const vs=vals.filter(v=>v!=null&&isFinite(v));if(!vs.length)return null;return{mn:Math.min(...vs),mx:Math.max(...vs)};};
-  const gR=rng(d.weekly.map(w=>w.gmv)), eR=rng(d.weekly.map(w=>w.eph)), sR=rng(d.weekly.map(w=>w.ssp));
+  const gR=rng(d.weekly.map(w=>w.gmv)), eR=rng(d.weekly.map(w=>w.eph));
   const ds=activeK.map(k=>conf[k]);
   if(chart)chart.destroy();
   Chart.defaults.font.family="Inter,-apple-system,sans-serif";
@@ -399,8 +395,7 @@ function renderChart(d){
         x:{grid:{display:false},ticks:{font:{size:11,weight:"600"},color:"#63736b"}},
         y:{display:activeK.includes("oh"),position:"left",grid:{color:"#eef2ef"},ticks:{font:{size:10.5},color:"#8a978f"},border:{display:false}},
         y1:{display:activeK.includes("gmv"),position:"right",min:gR?Math.floor(gR.mn*0.75):undefined,max:gR?Math.ceil(gR.mx*1.05):undefined,grid:{drawOnChartArea:false},ticks:{font:{size:10.5},color:"#8a978f"},border:{display:false}},
-        y2:{display:activeK.includes("eph"),position:"right",min:eR?Math.floor(eR.mn*0.75):undefined,max:eR?Math.ceil(eR.mx*1.45):undefined,grid:{drawOnChartArea:false},ticks:{font:{size:10.5},color:"#8a978f"},border:{display:false}},
-        y3:{display:activeK.includes("ssp")&&!activeK.includes("eph"),position:"right",min:sR?Math.floor(sR.mn*0.75):undefined,max:sR?Math.ceil(sR.mx*1.7):undefined,grid:{drawOnChartArea:false},ticks:{font:{size:10.5},color:"#8a978f"},border:{display:false}}
+        y2:{display:activeK.includes("eph"),position:"right",min:eR?Math.floor(eR.mn*0.75):undefined,max:eR?Math.ceil(eR.mx*1.45):undefined,grid:{drawOnChartArea:false},ticks:{font:{size:10.5},color:"#8a978f"},border:{display:false}}
       }}});
   paintTog();
 }
