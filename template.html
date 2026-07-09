@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DoubleDigit — Fleet Agreement Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{color-scheme:light;--green:#2A9C64;--dark:#0C2C1C;--white:#FFFFFF;--ink:#12211a;--muted:#63736b;--border:#e4eae6;--surface:#FFFFFF;--bg:#f5f8f6;--red:#c0392b;--amber:#b45309;--amber-bg:#fdf3e3;--cyan:#0e7490;--violet:#7c3aed;--gfill:#eaf5ef;--r:12px;--shadow:0 1px 2px rgba(12,44,28,.05),0 4px 14px rgba(12,44,28,.05)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scrollbar-gutter:stable}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:13px;-webkit-font-smoothing:antialiased}
+.hdr{background:var(--dark);color:var(--white);padding:22px 26px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-bottom:3px solid var(--green)}
+.hdr .brand{display:flex;flex-direction:column;gap:2px}
+.hdr .kick{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#fff;opacity:.5;margin-bottom:3px}
+.hdr h1{font-size:21px;font-weight:700;color:#fff;letter-spacing:-.01em}
+.hdr .sub{font-size:12px;color:#fff;opacity:.65;font-weight:500;letter-spacing:.01em;margin-top:3px}
+.hdr .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.hdr select{background:#fff;color:var(--dark);border:0;border-radius:8px;padding:9px 14px;font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.hdr select:hover{background:#f2f7f4}
+#status{display:flex;align-items:center;gap:8px;font-size:11px;padding:6px 24px;background:#ecf3ee;color:var(--muted);border-bottom:1px solid var(--border);min-height:26px}
+#status .dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}
+.wrap{padding:18px 20px 30px;max-width:1520px;margin:0 auto}
+.warn{background:var(--amber-bg);border:1px solid #ecdcae;color:#7a5c00;border-radius:10px;padding:9px 14px;font-size:12px;margin-bottom:14px;display:none}
+.kpi-hero{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+.hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--green)}
+.hero.dark::before{background:var(--dark)}
+.hero .kl{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:6px}
+.hero .kv{font-size:26px;font-weight:800;color:var(--dark);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hero.money .kv{color:var(--green)}
+.hero .ks{font-size:11px;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kpi-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;box-shadow:var(--shadow)}
+.kl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;margin-bottom:4px}
+.kv{font-size:17px;font-weight:800;color:var(--dark);white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.ks{font-size:10.5px;color:var(--muted);margin-top:3px}
+.mom{display:inline-flex;align-items:center;font-size:10px;font-weight:700;border-radius:999px;padding:1.5px 7px}
+.mom.up{background:var(--gfill);color:var(--green)}
+.mom.dn{background:#fbeceb;color:var(--red)}
+.mom.fl{background:#eef0ee;color:#667}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px;overflow:hidden;box-shadow:var(--shadow)}
+.card-h{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.card-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dark)}
+.tog{display:flex;gap:7px;flex-wrap:wrap}
+.tog button{border:1.5px solid var(--border);background:#fff;border-radius:999px;padding:5px 13px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s ease}
+.tog button:hover{transform:translateY(-1px)}
+.chart-body{height:320px;padding:12px 16px 8px;position:relative}
+.ctt{position:fixed;pointer-events:none;opacity:0;background:var(--dark);color:#fff;border-radius:10px;padding:0;font-size:12.5px;min-width:248px;box-shadow:0 10px 28px rgba(12,44,28,.4);z-index:99;transition:opacity .12s ease;overflow:hidden}
+.ctt-t{font-weight:700;font-size:13px;letter-spacing:.03em;display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.14)}
+.ctt-b{padding:10px 14px 12px}
+.ctt-prog{background:rgba(255,255,255,.16);color:#ffd89b;font-size:9px;font-weight:800;border-radius:4px;padding:1.5px 6px;letter-spacing:.06em}
+.ctt-row{display:flex;align-items:center;gap:8px;margin:5px 0}
+.ctt-row .sw{width:9px;height:9px;border-radius:2.5px;flex:none}
+.ctt-row .lb{opacity:.72}
+.ctt-row .vl{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+.ctt-row .tw{font-size:10px;font-weight:700;border-radius:999px;padding:1.5px 7px;flex:none}
+.tw.up{background:rgba(90,200,140,.22);color:#8fe3b5}
+.tw.dn{background:rgba(230,110,95,.22);color:#f4a99f}
+.ctt-div{height:1px;background:rgba(255,255,255,.14);margin:9px 0}
+.ctt-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:11.5px}
+.ctt-grid span{opacity:.68}
+.ctt-grid b{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.tabs{display:flex;gap:6px;padding:12px 14px 0;border-bottom:1px solid var(--border);background:#fbfdfc}
+.tabs button{border:1px solid transparent;background:transparent;color:var(--muted);padding:8px 15px 10px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;border-radius:9px 9px 0 0;position:relative;transition:color .15s}
+.tabs button:hover{color:var(--dark)}
+.tabs button.on{color:var(--dark);font-weight:700}
+.tabs button.on::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:3px;background:var(--green);border-radius:3px 3px 0 0}
+.panel{display:none;padding:14px}
+.panel.on{display:block}
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filters input{border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;font-family:inherit;min-width:200px;background:#fbfdfc;transition:border-color .15s}
+.filters input:focus{outline:none;border-color:var(--green);background:#fff}
+.tw2{overflow:auto;max-height:600px;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
+thead th{background:var(--dark);color:#fff;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:10px 11px;text-align:left;position:sticky;top:0;white-space:nowrap;z-index:2}
+thead th.r{text-align:right}
+th.sort{cursor:pointer;user-select:none}
+th.sort:hover{background:#1a4630}
+tbody td{padding:9px 11px;border-bottom:1px solid #eef2ef;vertical-align:top;line-height:1.45}
+tbody tr:nth-child(even) td{background:#fafcfa}
+tbody tr:hover td{background:var(--gfill)}
+td.r{text-align:right;font-variant-numeric:tabular-nums}
+td.mono{font-variant-numeric:tabular-nums}
+td.ident{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.fname{font-size:12px;min-width:130px;max-width:230px;white-space:normal;line-height:1.35;font-weight:500}
+.reg{font-weight:700;background:var(--dark);color:#fff;border-radius:6px;padding:3px 8px;font-size:11.5px;white-space:nowrap;letter-spacing:.03em}
+.wcell{display:grid;grid-template-columns:auto 1fr;gap:3px 9px;font-size:12px;min-width:146px;align-items:center}
+.wcell .m{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}
+.meter{height:3.5px;background:#e8eeea;border-radius:2px;margin-top:1.5px;overflow:hidden}
+.meter i{display:block;height:100%;border-radius:2px}
+.lvlchip{display:inline-block;font-size:10px;font-weight:800;border-radius:999px;padding:1.5px 9px;letter-spacing:.03em}
+.lvlchip.l2{background:var(--green);color:#fff}
+.lvlchip.l1{background:#d9f0e4;color:#1f7a4d;border:1px solid #b9e2cc}
+.lvlchip.l0{background:#f0f2f0;color:#9aa59e}
+.lvlchip.l0r{background:#fbeceb;color:var(--red);border:1px solid #f2cfcb}
+td.c,th.c{text-align:center!important}
+.brand{color:#166534;font-weight:600}
+.fleet{color:var(--cyan);font-weight:700}
+.bar{background:#e8eeea;border-radius:3px;height:6px;min-width:70px;overflow:hidden}
+.bar>div{background:var(--green);height:6px;border-radius:3px}
+.note{font-size:11px;color:var(--muted);padding:10px 4px 0;line-height:1.5}
+td.sumcol{border-left:3px solid var(--green);background:#f6faf7!important}
+.agree{max-width:880px}
+.agree h3{font-size:13px;color:var(--dark);margin:18px 0 8px;padding-left:10px;border-left:3px solid var(--green)}
+.agree h3:first-child{margin-top:4px}
+.agree p,.agree li{font-size:12px;line-height:1.6;color:#26332c}
+.agree ul{padding-left:20px;margin:6px 0}
+.agree table{width:auto;min-width:440px;margin:8px 0;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.agree td,.agree th{padding:6px 14px}
+.pill{display:inline-block;background:var(--gfill);color:var(--dark);border-radius:999px;padding:3px 11px;font-size:11px;font-weight:600;margin:2.5px}
+.flag{color:var(--red);font-weight:800}
+@media(max-width:1100px){.kpi-bar{grid-template-columns:repeat(3,1fr)}.kpi-hero{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="brand">
+    <div class="kick">Bolt · Fleet Partnerships · Madrid</div>
+    <h1>DoubleDigit — Fleet Agreement Tracker</h1>
+    <div class="sub">Datos a semana vencida · se actualiza automáticamente los lunes (8:00–18:00 Madrid)</div>
+  </div>
+  <div class="right"><select id="month"></select></div>
+</div>
+<div id="status"><span class="dot"></span><span id="statusTxt"></span></div>
+<div class="wrap">
+  <div class="warn" id="warnPct"></div>
+  <div class="kpi-hero" id="kpisHero"></div>
+  <div class="kpi-bar" id="kpis"></div>
+  <div class="card">
+    <div class="card-h">
+      <span class="card-t">Evolución semanal</span>
+      <div class="tog" id="ktog">
+        <button data-k="oh" class="on">OH</button>
+        <button data-k="gmv">GMV</button>
+        <button data-k="eph">EPH</button>
+        <button data-k="ssp">Supply Spend %</button>
+      </div>
+    </div>
+    <div class="chart-body"><canvas id="chart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="tabs" id="tabs">
+      <button data-t="cars" class="on">Detalle por coche</button>
+      <button data-t="cos">Detalle por empresa</button>
+      <button data-t="drv">Detalle por conductor</button>
+      <button data-t="agree">Condiciones del acuerdo</button>
+    </div>
+    <div class="panel on" id="p-cars">
+      <div class="filters">
+        <input id="fFlota" list="flotas" placeholder="Filtrar por flota…">
+        <datalist id="flotas"></datalist>
+        <input id="fCar" placeholder="Matrícula o car ID…">
+      </div>
+      <div class="tw2"><table><thead id="carsHead"></thead><tbody id="carsBody"></tbody></table></div>
+      <div class="note">Semanas Lun–Dom asignadas al mes en el que terminan; solo semanas cerradas. Resumen mes: OH y GMV del mes natural; Branding y Fleet Bonus = suma de las semanas del mes. Branding = bonus de campaña CarBranding calculado por Bolt (fuente: conditional_campaigns). Fleet Bonus = máx(0, 12%/15% × facturación semanal − Branding), según nivel del acuerdo. Las barras bajo OH y PH indican el progreso hacia el umbral de Nivel 2 (35h / 25h).</div>
+    </div>
+    <div class="panel" id="p-cos">
+      <div class="tw2"><table><thead><tr><th>Empresa</th><th style="width:92px">Company ID</th><th class="c" style="width:64px">Coches</th><th class="c">GMV</th><th class="c">Branding Bonus</th><th class="c">Fleet Bonus</th><th class="c">Total Bonus</th><th style="width:130px">% GMV flota</th></tr></thead><tbody id="cosBody"></tbody></table></div>
+      <div class="note">GMV = mes natural. Branding y Fleet Bonus = suma de las semanas del mes (asignación por semana que termina en el mes).</div>
+    </div>
+    <div class="panel" id="p-drv">
+      <div class="filters">
+        <input id="fDrvFlota" list="flotas" placeholder="Filtrar por flota…">
+        <input id="fDrv" placeholder="Nombre o driver ID…">
+      </div>
+      <div class="tw2"><table><thead id="drvHead"></thead><tbody id="drvBody"></tbody></table></div>
+      <div class="note">Mes natural. Net EPH = GMV / OH. % Pico = OH en ventanas pico de campaña / OH. Tasa Fin. = viajes finalizados / (aceptados − cancelaciones de cliente).</div>
+    </div>
+    <div class="panel" id="p-agree">
+      <div class="agree">
+        <h3>Estructura del acuerdo</h3>
+        <p>DoubleDigit es una gestora que opera varias flotas (company IDs). Todos sus coches están enrolados en campañas semanales de CarBranding (cohort C), que pagan a la flota un bonus del 6% u 8% de la facturación semanal. Adicionalmente, DoubleDigit recibe un kickback semanal por coche.</p>
+        <h3>Branding Bonus (campaña CarBranding, pagado a la flota)</h3>
+        <ul>
+          <li>Fuente: cálculo oficial de campañas de Bolt en Databricks (<code>conditional_campaigns</code>): importe ganado, % conseguido, OH, OH pico y AR por coche y semana.</li>
+          <li>Porcentajes válidos: 0% (no cumple), 6% (tramo 1) u 8% (tramo 1 + tramo 2). Cualquier otro valor se marca con ⚠ para investigar.</li>
+        </ul>
+        <h3>Niveles semanales del acuerdo (kickback a DoubleDigit)</h3>
+        <table><thead><tr><th>Condición</th><th class="r">Nivel 1</th><th class="r">Nivel 2</th></tr></thead>
+        <tbody>
+        <tr><td>Online Hours (OH)</td><td class="r">25 h</td><td class="r">35 h</td></tr>
+        <tr><td>Horas pico (PH)</td><td class="r">15 h</td><td class="r">25 h</td></tr>
+        <tr><td>AR</td><td class="r">85%</td><td class="r">85%</td></tr>
+        <tr><td><b>Kickback</b></td><td class="r"><b>12.0%</b></td><td class="r"><b>15.0%</b></td></tr>
+        </tbody></table>
+        <ul>
+          <li>Fleet Bonus semanal por coche = <b>máx(0, tasa (12% N1 / 15% N2) × facturación semanal − Branding Bonus de esa semana)</b>.</li>
+          <li>Si el coche no recibió Branding pero cumplió Nivel 1 o 2, se paga el 12–15% íntegro.</li>
+          <li>Sin nivel, no hay kickback esa semana.</li>
+          <li>Ejemplo: un coche factura 100 €, cobra un Branding del 8% y cumple Nivel 2 → la flota recibe 8 € y DoubleDigit recibe 15 − 8 = 7 €.</li>
+        </ul>
+        <h3>Ventanas de horas pico (hora local Madrid, definición de campaña)</h3>
+        <ul>
+          <li>Lun–Mié: 7–10 y 17–20 · Jue: 7–10 y 17–24 · Vie: 0–2, 7–10 y 13–24 · Sáb y Dom: 0–7 y 11–24.</li>
+        </ul>
+        <h3>Asignación de semanas a meses</h3>
+        <p>Cada semana Lun–Dom pertenece al mes en el que termina (domingo). Solo se muestran semanas cerradas (a semana vencida). Ejemplo: junio incluye W23–W26; la W27 termina el 5 de julio y cuenta para julio.</p>
+        <h3>Metodología y fuentes</h3>
+        <ul>
+          <li>Lista de flotas: Google Sheet <i>Madrid Grouping</i>, filas con columna C = DOUBLEDIGIT (leída en cada build).</li>
+          <li>Branding, OH/PH/AR de campaña y facturación de campaña: <code>ng_public.conditional_campaigns_*</code> (los mismos datos del dashboard de Looker de Branding Campaigns).</li>
+          <li>GMV, OH operativas, viajes y utilización: <code>ng_public.etl_partner_data</code>; horas pico de respaldo: <code>etl_partner_data_order</code>.</li>
+          <li>Si un coche no tiene cálculo de campaña una semana, se usan las métricas operativas como respaldo (marcado con *).</li>
+          <li>Actualización: GitHub Action los lunes, cada hora de 8:00 a 18:00 (Madrid), hasta que el ETL tenga la última semana cerrada. Solo se publica si hay datos nuevos.</li>
+        </ul>
+        <h3>Flotas incluidas en este build</h3>
+        <div id="fleetPills"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+"use strict";
+const DATA=__DD_DATA__;
+const BUILD_TS="__BUILD_TS__";
+const KCOLOR={oh:"#2A9C64",gmv:"#0C2C1C",eph:"#b45309",ssp:"#7c3aed"};
+const VALID_PCT=[0,6,8];
+let FLEETS=DATA.fleets||{}, IDS=Object.keys(FLEETS).map(Number), cache={}, cur=null, chart=null, activeK=["oh"], drvSort={col:"flota",dir:1};
+
+const $=id=>document.getElementById(id);
+const fmt=(v,d=1)=>(v==null||isNaN(v))?"—":(+v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtE=v=>(v==null||isNaN(v))?"—":"€"+(+v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtK=v=>(v==null||isNaN(v))?"—":"€"+Math.round(+v).toLocaleString("en-US");
+
+function finLeg(r){const den=(+r.acc||0)-(+r.cxl||0);return den>0?Math.min(100,(+r.rides||0)/den*100):null;}
+function levelOf(oh,peak,ar){
+  if(ar==null||ar<85)return 0;
+  if(oh>=35&&peak>=25)return 2;
+  if(oh>=25&&peak>=15)return 1;
+  return 0;
+}
+const RATE={1:12,2:15};
+
+function loadMonth(ym){
+  if(cache[ym])return cache[ym];
+  const M=DATA.months[ym];
+  if(!M)throw new Error("Mes sin datos");
+  const wks=M.wks, preS=M.preS;
+  const cw=M.cw||[], pk=M.pk||[], camp=M.camp||[], cm=M.cm||[], dm=M.dm||[], dp=M.dp||[], pa=M.pa||[];
+  const pkIx={};pk.forEach(r=>{pkIx[r.id+"|"+r.wk]=+r.peak||0;});
+  const dpIx={};dp.forEach(r=>{dpIx[r.id]=+r.peak||0;});
+  let badPct=0;
+  const cars={};
+  function carRec(id,reg,cid){if(!cars[id])cars[id]={id,reg:reg||null,cid:+cid||null,weeks:{}};if(reg&&!cars[id].reg)cars[id].reg=reg;if(cid&&!cars[id].cid)cars[id].cid=+cid;return cars[id];}
+  cw.forEach(r=>{
+    if(!(+r.id>0))return;
+    const c=carRec(r.id,r.reg,r.cid);
+    c.weeks[r.wk]={ohEtl:+r.oh||0,busy:+r.busy||0,gmvEtl:+r.gmv||0,rides:+r.rides||0,arEtl:finLeg(r),pkEtl:pkIx[r.id+"|"+r.wk]||0};
+  });
+  camp.forEach(r=>{if(!(+r.id>0))return;const c=carRec(r.id,r.reg,r.cid);if(!c.weeks[r.wk])c.weeks[r.wk]={ohEtl:0,busy:0,gmvEtl:0,rides:0,arEtl:null,pkEtl:0};c.weeks[r.wk].camp=r;});
+  cm.forEach(r=>{if(!(+r.id>0))return;carRec(r.id,r.reg,r.cid);});
+  Object.values(cars).forEach(c=>{
+    Object.entries(c.weeks).forEach(([wk,d])=>{
+      const g=d.camp;
+      d.fromCamp=!!(g&&g.c_oh!=null);
+      d.oh=d.fromCamp?+g.c_oh:d.ohEtl;
+      d.peak=d.fromCamp&&g.c_ph!=null?+g.c_ph:d.pkEtl;
+      d.ar=d.fromCamp&&g.c_ar!=null?+g.c_ar:d.arEtl;
+      d.gmvBase=(g&&+g.c_gmv>0)?+g.c_gmv:d.gmvEtl;
+      d.brand=g?(+g.brand_amt||0):0;
+      d.brandPct=g?(+g.brand_pct||0):0;
+      d.pctOk=VALID_PCT.includes(Math.round(d.brandPct*10)/10);
+      if(!d.pctOk)badPct++;
+      d.lvl=levelOf(d.oh,d.peak,d.ar);
+      d.kb=d.lvl?Math.max(0,RATE[d.lvl]/100*d.gmvBase-d.brand):0;
+    });
+  });
+  const wp=$("warnPct");
+  if(badPct>0){wp.style.display="block";wp.textContent="⚠ "+badPct+" semana(s)-coche con % de Branding fuera de {0%, 6%, 8%}. Marcadas en la tabla; conviene investigarlas.";}
+  else wp.style.display="none";
+  const month={};
+  cm.forEach(r=>{if(!(+r.id>0))return;month[r.id]={reg:r.reg,cid:+r.cid,oh:+r.oh||0,busy:+r.busy||0,gmv:+r.gmv||0,rides:+r.rides||0};});
+  const weekly=wks.map(w=>{
+    let a={label:w.label,start:w.start,prog:false,gmv:0,oh:0,busy:0,bonus:0,kb:0,rides:0,cars:0,n1:0,n2:0};
+    Object.values(cars).forEach(c=>{
+      const d=c.weeks[w.start];if(!d)return;
+      if(!(d.oh>0||d.gmvEtl>0||d.brand>0))return;
+      a.gmv+=d.gmvEtl;a.oh+=d.ohEtl;a.busy+=d.busy;a.bonus+=d.brand;a.kb+=d.kb;a.rides+=d.rides;a.cars++;
+      if(d.lvl===1)a.n1++;if(d.lvl===2)a.n2++;
+    });
+    a.eph=a.oh>0?a.gmv/a.oh:null;
+    a.ssp=a.gmv>0?(a.bonus+a.kb)/a.gmv*100:null;
+    return a;
+  });
+  const agg={gmv:0,oh:0,busy:0,rides:0,active:0};
+  Object.values(month).forEach(m=>{agg.gmv+=m.gmv;agg.oh+=m.oh;agg.busy+=m.busy;agg.rides+=m.rides;if(m.rides>0)agg.active++;});
+  agg.bonus=weekly.reduce((s,w)=>s+w.bonus,0);
+  agg.kb=weekly.reduce((s,w)=>s+w.kb,0);
+  agg.eph=agg.oh>0?agg.gmv/agg.oh:null;
+  agg.util=agg.oh>0?agg.busy/agg.oh*100:null;
+  agg.ssp=agg.gmv>0?(agg.bonus+agg.kb)/agg.gmv*100:null;
+  const p=pa[0]||{};
+  const prev={gmv:+p.gmv||0,oh:+p.oh||0,busy:+p.busy||0,rides:+p.rides||0,active:+p.active||0};
+  prev.eph=prev.oh>0?prev.gmv/prev.oh:null;
+  prev.util=prev.oh>0?prev.busy/prev.oh*100:null;
+  const drivers=dm.map(r=>{
+    const oh=+r.oh||0,peak=dpIx[r.id]||0,gmv=+r.gmv||0,busy=+r.busy||0;
+    return {id:r.id,name:r.name||("Driver "+r.id),cid:+r.cid,gmv,oh,peak,ppeak:oh>0?peak/oh*100:null,eph:oh>0?gmv/oh:null,util:oh>0?busy/oh*100:null,fin:finLeg(r),rides:+r.rides||0};
+  });
+  let pwk={oh:0,gmv:0,bonus:0,kb:0};
+  Object.values(cars).forEach(c=>{
+    const dd=c.weeks[preS];if(!dd)return;
+    if(!(dd.oh>0||dd.gmvEtl>0||dd.brand>0))return;
+    pwk.gmv+=dd.gmvEtl;pwk.oh+=dd.ohEtl;pwk.bonus+=dd.brand;pwk.kb+=dd.kb;
+  });
+  const prevWeekly={oh:pwk.oh||null,gmv:pwk.gmv||null,eph:pwk.oh>0?pwk.gmv/pwk.oh:null,ssp:pwk.gmv>0?(pwk.bonus+pwk.kb)/pwk.gmv*100:null};
+  const out={wks,weekly,prevWeekly,cars:Object.values(cars),month,agg,prev,drivers,partial:false};
+  cache[ym]=out;
+  return out;
+}
+
+// ---- renders ----
+function momB(nv,pv){
+  if(nv==null||!pv)return "";
+  const d=(nv-pv)/Math.abs(pv)*100;
+  if(!isFinite(d))return "";
+  const cls=d>0.05?"up":d<-0.05?"dn":"fl";
+  return `<span class="mom ${cls}">${d>0?"↑":d<0?"↓":""}${Math.abs(d).toFixed(1)}% MoM</span>`;
+}
+function renderKpis(d){
+  const a=d.agg,p=d.prev;
+  $("kpisHero").innerHTML=`
+  <div class="hero dark"><div class="kl">GMV Bruto</div><div class="kv">${fmtK(a.gmv)}</div><div class="ks">${fmt(a.rides,0)} viajes ${momB(a.gmv,p.gmv)}</div></div>
+  <div class="hero money"><div class="kl">Branding Bonus · flota</div><div class="kv">${fmtK(a.bonus)}</div><div class="ks">${a.gmv>0?fmt(a.bonus/a.gmv*100,1)+"% del GMV":""} · semanas del mes</div></div>
+  <div class="hero money"><div class="kl">Fleet Bonus · DoubleDigit</div><div class="kv">${fmtK(a.kb)}</div><div class="ks">${a.gmv>0?fmt(a.kb/a.gmv*100,1)+"% del GMV":""} · semanas del mes</div></div>`;
+  $("kpis").innerHTML=`
+  <div class="kpi"><div class="kl">Online Hours</div><div class="kv">${fmt(a.oh,0)}h</div><div class="ks">${momB(a.oh,p.oh)}</div></div>
+  <div class="kpi"><div class="kl">Viajes</div><div class="kv">${fmt(a.rides,0)}</div><div class="ks">${momB(a.rides,p.rides)}</div></div>
+  <div class="kpi"><div class="kl">EPH</div><div class="kv">${a.eph!=null?fmtE(a.eph):"—"}</div><div class="ks">${momB(a.eph,p.eph)||"€ / hora online"}</div></div>
+  <div class="kpi"><div class="kl">Utilización</div><div class="kv">${a.util!=null?fmt(a.util,1)+"%":"—"}</div><div class="ks">${momB(a.util,p.util)||"con viaje / online"}</div></div>
+  <div class="kpi"><div class="kl">Coches activos</div><div class="kv">${a.active||"—"}</div><div class="ks">${momB(a.active,p.active)||"≥1 viaje en el mes"}</div></div>
+  <div class="kpi"><div class="kl">Supply Spend</div><div class="kv">${a.ssp!=null?fmt(a.ssp,1)+"%":"—"}</div><div class="ks">(branding + fleet) / GMV</div></div>`;
+}
+function paintTog(){
+  document.querySelectorAll("#ktog button").forEach(b=>{
+    const col=KCOLOR[b.dataset.k];
+    if(activeK.includes(b.dataset.k)){b.style.background=col;b.style.borderColor=col;b.style.color="#fff";}
+    else{b.style.background="#fff";b.style.borderColor=col;b.style.color=col;}
+  });
+}
+function externalTT(context,d){
+  const {chart,tooltip}=context;
+  let el=document.body.querySelector(".ctt");
+  if(!el){el=document.createElement("div");el.className="ctt";document.body.appendChild(el);}
+  if(tooltip.opacity===0||!tooltip.dataPoints||!tooltip.dataPoints.length){el.style.opacity=0;return;}
+  const i=tooltip.dataPoints[0].dataIndex;
+  const w=d.weekly[i];
+  const rows=tooltip.dataPoints.map(dp=>{
+    const ds=dp.dataset, v=dp.parsed.y;
+    let wow="";
+    const arr=ds.data;
+    const prev=i>0?arr[i-1]:(d.prevWeekly?d.prevWeekly[ds.kkey]:null);
+    if(prev!=null&&prev!==0&&v!=null){
+      const p=(v-prev)/Math.abs(prev)*100;
+      wow=`<span class="tw ${p>=0?"up":"dn"}">${p>=0?"▲":"▼"} ${Math.abs(p).toFixed(1)}% WoW</span>`;
+    }
+    return `<div class="ctt-row"><span class="sw" style="background:${ds.borderColor||ds.backgroundColor}"></span><span class="lb">${ds.label}</span>${wow}<span class="vl">${v==null?"—":(ds.kfmt?ds.kfmt(v):v)}</span></div>`;
+  }).join("");
+  el.innerHTML=`<div class="ctt-t">${w.label}</div>
+  <div class="ctt-b">${rows}
+  <div class="ctt-div"></div>
+  <div class="ctt-grid">
+    <span>Coches activos</span><b>${w.cars}</b>
+    <span>Nivel 1 · Nivel 2</span><b>${w.n1} · ${w.n2}</b>
+    <span>Branding Bonus</span><b>${fmtE(w.bonus)}</b>
+    <span>Fleet Bonus (DD)</span><b>${fmtE(w.kb)}</b>
+    <span>Supply Spend</span><b>${w.ssp!=null?fmt(w.ssp,1)+"%":"—"}</b>
+  </div></div>`;
+  el.style.opacity=1;
+  const rect=chart.canvas.getBoundingClientRect();
+  const ew=el.offsetWidth, eh=el.offsetHeight;
+  const vw=window.innerWidth, vh=window.innerHeight;
+  let x=rect.left+tooltip.caretX-ew/2;
+  x=Math.max(8,Math.min(vw-ew-8,x));
+  let y=rect.top+tooltip.caretY-eh-14;
+  if(y<8)y=Math.min(vh-eh-8,rect.top+tooltip.caretY+16);
+  el.style.left=x+"px";
+  el.style.top=y+"px";
+}
+function renderChart(d){
+  const labels=d.weekly.map(w=>w.label);
+  const conf={
+    oh:{label:"OH",kkey:"oh",kfmt:v=>fmt(v,0)+"h",data:d.weekly.map(w=>w.oh),type:"bar",backgroundColor:KCOLOR.oh,borderRadius:8,maxBarThickness:110,categoryPercentage:.72,barPercentage:.9,yAxisID:"y",order:2},
+    gmv:{label:"GMV",kkey:"gmv",kfmt:v=>fmtK(v),data:d.weekly.map(w=>w.gmv),type:"line",borderColor:KCOLOR.gmv,backgroundColor:KCOLOR.gmv,pointRadius:4,pointHoverRadius:6,borderWidth:2.5,yAxisID:"y1",tension:.35,order:1},
+    eph:{label:"EPH",kkey:"eph",kfmt:v=>fmtE(v),data:d.weekly.map(w=>w.eph),type:"line",borderColor:KCOLOR.eph,backgroundColor:KCOLOR.eph,pointRadius:4,pointHoverRadius:6,borderWidth:2.5,yAxisID:"y2",tension:.35,order:1},
+    ssp:{label:"Supply Spend",kkey:"ssp",kfmt:v=>fmt(v,1)+"%",data:d.weekly.map(w=>w.ssp),type:"line",borderColor:KCOLOR.ssp,backgroundColor:KCOLOR.ssp,pointRadius:4,pointHoverRadius:6,borderWidth:2.5,yAxisID:"y3",tension:.35,order:1}
+  };
+  const rng=vals=>{const vs=vals.filter(v=>v!=null&&isFinite(v));if(!vs.length)return null;return{mn:Math.min(...vs),mx:Math.max(...vs)};};
+  const gR=rng(d.weekly.map(w=>w.gmv)), eR=rng(d.weekly.map(w=>w.eph)), sR=rng(d.weekly.map(w=>w.ssp));
+  const ds=activeK.map(k=>conf[k]);
+  if(chart)chart.destroy();
+  Chart.defaults.font.family="Inter,-apple-system,sans-serif";
+  chart=new Chart($("chart"),{
+    data:{labels,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{display:false},tooltip:{enabled:false,external:(ctx)=>externalTT(ctx,d)}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11,weight:"600"},color:"#63736b"}},
+        y:{display:activeK.includes("oh"),position:"left",grid:{color:"#eef2ef"},ticks:{font:{size:10.5},color:"#8a978f"},border:{display:false}},
+        y1:{display:activeK.includes("gmv"),position:"right",min:gR?Math.floor(gR.mn*0.75):undefined,max:gR?Math.ceil(gR.mx*1.05):undefined,grid:{drawOnChartArea:false},ticks:{font:{size:10.5},color:"#8a978f"},border:{display:false}},
+        y2:{display:activeK.includes("eph"),position:"right",min:eR?Math.floor(eR.mn*0.75):undefined,max:eR?Math.ceil(eR.mx*1.45):undefined,grid:{drawOnChartArea:false},ticks:{font:{size:10.5},color:"#8a978f"},border:{display:false}},
+        y3:{display:activeK.includes("ssp")&&!activeK.includes("eph"),position:"right",min:sR?Math.floor(sR.mn*0.75):undefined,max:sR?Math.ceil(sR.mx*1.7):undefined,grid:{drawOnChartArea:false},ticks:{font:{size:10.5},color:"#8a978f"},border:{display:false}}
+      }}});
+  paintTog();
+}
+const C_N2="#2A9C64", C_N1="#5cb587", C_BAD="#c0392b", C_WIP="#9aa59e";
+function toneCol(v,min,hi,prog){return (v||0)>=hi?C_N2:(v||0)>=min?C_N1:(prog?C_WIP:C_BAD);}
+function meter(v,target,col){
+  const w=Math.min(100,Math.round((v||0)/target*100));
+  return `<div class="meter"><i style="width:${w}%;background:${col}"></i></div>`;
+}
+function wcell(w,prog){
+  if(!w||!(w.oh>0||w.gmvEtl>0||w.brand>0))return `<td style="color:#c8cfc9;text-align:center">—</td>`;
+  const src=w.fromCamp?"":"*";
+  const ohCol=toneCol(w.oh,25,35,prog), phCol=toneCol(w.peak,15,25,prog);
+  const pctCol=w.brandPct>=8?C_N2:w.brandPct>=6?C_N1:(prog?C_WIP:C_BAD);
+  const pctTxt=w.brandPct>0?fmt(w.brandPct,0)+"%":"0%";
+  const flag=w.pctOk?"":' <span class="flag" title="% fuera de {0,6,8}: investigar">⚠</span>';
+  const chip=w.lvl===2?'<span class="lvlchip l2">N2</span>':w.lvl===1?'<span class="lvlchip l1">N1</span>':(prog?'<span class="lvlchip l0">—</span>':'<span class="lvlchip l0r">Sin nivel</span>');
+  return `<td><div class="wcell">
+  <span class="m">OH</span><span><b style="color:${ohCol}">${fmt(w.oh)}h</b>${src}${meter(w.oh,35,ohCol)}</span>
+  <span class="m">PH</span><span><b style="color:${phCol}">${fmt(w.peak)}h</b>${src}${meter(w.peak,25,phCol)}</span>
+  <span class="m">AR</span><span style="font-weight:700;color:${w.ar!=null&&w.ar>=85?"var(--green)":"var(--red)"}">${w.ar!=null?fmt(w.ar,0)+"%":"—"}</span>
+  <span class="m">Nivel</span><span>${chip}</span>
+  <span class="m">Branding</span><span style="font-weight:600;color:${pctCol}">${w.brand>0?fmtE(w.brand)+" ("+pctTxt+")":pctTxt}${flag}</span>
+  <span class="m">Fleet B.</span><span class="fleet">${w.kb>0?fmtE(w.kb)+" ("+RATE[w.lvl]+"%)":"—"}</span>
+  </div></td>`;
+}
+function renderCars(d){
+  const fl=($("fFlota").value||"").toLowerCase(), q=($("fCar").value||"").toLowerCase();
+  $("carsHead").innerHTML=`<tr><th style="width:86px">Matrícula</th><th style="width:74px">Car ID</th><th style="width:150px">Flota</th>${d.wks.map(w=>`<th>${w.label}</th>`).join("")}<th style="border-left:3px solid var(--green)">Resumen mes</th></tr>`;
+  const rows=d.cars
+    .filter(c=>d.month[c.id]||d.wks.some(w=>c.weeks[w.start]))
+    .filter(c=>{
+      const fname=(FLEETS[c.cid]||"").toLowerCase();
+      return (!fl||fname.includes(fl))&&(!q||(c.reg||"").toLowerCase().includes(q)||String(c.id).includes(q));
+    })
+    .map(c=>{
+      const m=d.month[c.id]||{oh:0,gmv:0};
+      const bm=d.wks.reduce((s,w)=>s+((c.weeks[w.start]||{}).brand||0),0);
+      const km=d.wks.reduce((s,w)=>s+((c.weeks[w.start]||{}).kb||0),0);
+      return {...c,m,bm,km};
+    })
+    .sort((a,b)=>(FLEETS[a.cid]||"~").localeCompare(FLEETS[b.cid]||"~")||(a.reg||"").localeCompare(b.reg||""));
+  $("carsBody").innerHTML=rows.map(c=>`<tr>
+    <td><span class="reg">${c.reg||"—"}</span></td>
+    <td class="ident">${c.id}</td>
+    <td class="fname">${FLEETS[c.cid]||c.cid||"—"}</td>
+    ${d.wks.map(w=>wcell(c.weeks[w.start],false)).join("")}
+    <td class="sumcol"><div class="wcell">
+      <span class="m">OH</span><span style="font-weight:700">${fmt(c.m.oh)}h</span>
+      <span class="m">GMV</span><span style="font-weight:700">${fmtE(c.m.gmv)}</span>
+      <span class="m">Branding</span><span class="brand">${c.bm>0?fmtE(c.bm):"—"}</span>
+      <span class="m">Fleet B.</span><span class="fleet">${c.km>0?fmtE(c.km):"—"}</span>
+    </div></td></tr>`).join("")||`<tr><td colspan="20" style="text-align:center;padding:22px;color:var(--muted)">Sin coches para este filtro</td></tr>`;
+}
+function renderCos(d){
+  const by={};
+  const rec=cid=>{if(!by[cid])by[cid]={n:0,gmv:0,bonus:0,kb:0};return by[cid];};
+  Object.values(d.month).forEach(m=>{const r=rec(m.cid);if(m.rides>0)r.n++;r.gmv+=m.gmv;});
+  d.cars.forEach(c=>{
+    if(!c.cid)return;
+    const r=rec(c.cid);
+    d.wks.forEach(w=>{const dd=c.weeks[w.start];if(dd){r.bonus+=dd.brand||0;r.kb+=dd.kb||0;}});
+  });
+  const rows=Object.entries(by).map(([cid,r])=>({cid,...r,tot:r.bonus+r.kb})).sort((a,b)=>(FLEETS[a.cid]||"~").localeCompare(FLEETS[b.cid]||"~"));
+  const totalG=rows.reduce((s,r)=>s+r.gmv,0)||1, mx=Math.max(...rows.map(r=>r.tot),1);
+  $("cosBody").innerHTML=rows.map(r=>`<tr>
+    <td style="font-weight:600">${FLEETS[r.cid]||r.cid}</td><td class="ident">${r.cid}</td>
+    <td class="c">${r.n}</td><td class="c mono">${fmtE(r.gmv)}</td>
+    <td class="c mono brand">${r.bonus>0?fmtE(r.bonus):"—"}</td>
+    <td class="c mono fleet">${r.kb>0?fmtE(r.kb):"—"}</td>
+    <td class="c mono" style="font-weight:700">${r.tot>0?fmtE(r.tot):"—"}</td>
+    <td><div class="bar"><div style="width:${Math.round(r.tot/mx*100)}%"></div></div><div style="font-size:10px;color:var(--muted);margin-top:2px">${(r.gmv/totalG*100).toFixed(1)}% GMV</div></td>
+  </tr>`).join("");
+}
+const DCOLS=[["id","Driver ID",0],["name","Nombre",0],["flota","Flota",0],["gmv","Facturación",1],["oh","OH",1],["peak","OH Pico",1],["ppeak","% Pico",1],["eph","Net EPH",1],["util","% Util.",1],["fin","Tasa Fin.",1],["rides","Viajes",1]];
+function renderDrv(d){
+  const fl=($("fDrvFlota").value||"").toLowerCase(), q=($("fDrv").value||"").toLowerCase();
+  $("drvHead").innerHTML="<tr>"+DCOLS.map(([k,t,r])=>`<th class="sort ${r?"c":""}" data-k="${k}">${t}${drvSort.col===k?(drvSort.dir<0?" ↓":" ↑"):""}</th>`).join("")+"</tr>";
+  $("drvHead").querySelectorAll("th").forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(drvSort.col===k)drvSort.dir*=-1;else{drvSort.col=k;drvSort.dir=-1;}renderDrv(d);});
+  let rows=d.drivers.map(x=>({...x,flota:FLEETS[x.cid]||String(x.cid)}));
+  rows=rows.filter(x=>(!fl||x.flota.toLowerCase().includes(fl))&&(!q||x.name.toLowerCase().includes(q)||String(x.id).includes(q)));
+  rows.sort((a,b)=>{const k=drvSort.col,va=a[k],vb=b[k];if(typeof va==="string")return drvSort.dir*va.localeCompare(vb);return drvSort.dir*(( +vb||0)-(+va||0))*-1;});
+  $("drvBody").innerHTML=rows.map(x=>`<tr>
+    <td class="ident">${x.id}</td><td style="font-weight:600">${x.name}</td>
+    <td class="fname">${x.flota}</td>
+    <td class="c mono">${fmtE(x.gmv)}</td><td class="c mono">${fmt(x.oh)}</td><td class="c mono">${fmt(x.peak)}</td>
+    <td class="c mono">${x.ppeak!=null?fmt(x.ppeak,1)+"%":"—"}</td>
+    <td class="c mono">${x.eph!=null?fmtE(x.eph):"—"}</td>
+    <td class="c mono">${x.util!=null?fmt(x.util,1)+"%":"—"}</td>
+    <td class="c mono" style="color:${x.fin!=null&&x.fin>=85?"var(--green)":"var(--red)"};font-weight:600">${x.fin!=null?fmt(x.fin,1)+"%":"—"}</td>
+    <td class="c mono">${fmt(x.rides,0)}</td></tr>`).join("")||`<tr><td colspan="11" style="text-align:center;padding:22px;color:var(--muted)">Sin conductores</td></tr>`;
+}
+function renderAll(d){renderKpis(d);renderChart(d);renderCars(d);renderCos(d);renderDrv(d);}
+
+function selectMonth(ym){
+  try{
+    cur=ym;try{localStorage.setItem("dd_month",ym);}catch(e){}
+    renderAll(loadMonth(ym));
+  }catch(e){console.error(e);$("statusTxt").textContent="Error: "+e.message;}
+}
+function buildMonths(){
+  const sel=$("month");
+  const opts=Object.keys(DATA.months).sort();
+  const NM=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  sel.innerHTML=opts.map(o=>`<option value="${o}">${NM[+o.split("-")[1]-1]} ${o.split("-")[0]}</option>`).join("");
+  let saved=null;try{saved=localStorage.getItem("dd_month");}catch(e){}
+  sel.value=(saved&&opts.includes(saved))?saved:opts[opts.length-1];
+  sel.onchange=()=>selectMonth(sel.value);
+  return sel.value;
+}
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("on"));
+  document.querySelectorAll(".panel").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");$("p-"+b.dataset.t).classList.add("on");
+  try{localStorage.setItem("dd_tab",b.dataset.t);}catch(e){}
+});
+document.querySelectorAll("#ktog button").forEach(b=>b.onclick=()=>{
+  const k=b.dataset.k;
+  if(activeK.includes(k)){if(activeK.length===1)return;activeK=activeK.filter(x=>x!==k);}
+  else activeK.push(k);
+  if(cache[cur])renderChart(cache[cur]); else paintTog();
+});
+["fFlota","fCar"].forEach(id=>$(id).oninput=()=>cache[cur]&&renderCars(cache[cur]));
+["fDrvFlota","fDrv"].forEach(id=>$(id).oninput=()=>cache[cur]&&renderDrv(cache[cur]));
+
+(function init(){
+  paintTog();
+  $("statusTxt").textContent="Datos a semana vencida · "+IDS.length+" flotas DD · generado "+BUILD_TS;
+  $("fleetPills").innerHTML=IDS.map(i=>`<span class="pill">${FLEETS[i]} · ${i}</span>`).join("");
+  const dl=$("flotas");dl.innerHTML=[...new Set(Object.values(FLEETS))].sort().map(f=>`<option value="${f}">`).join("");
+  let tab=null;try{tab=localStorage.getItem("dd_tab");}catch(e){}
+  if(tab&&$("p-"+tab)){document.querySelector(`#tabs button[data-t="${tab}"]`)?.click();}
+  selectMonth(buildMonths());
+})();
+</script>
+</body>
+</html>
