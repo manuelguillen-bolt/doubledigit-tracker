@@ -126,7 +126,16 @@ function monthList(today) {
 }
 
 // ---------- queries ----------
-function campQuery(inIds, preS, spanE) {
+// Coches que dejan de ser gestionados por DoubleDigit: se excluyen a partir del mes indicado (por matrícula normalizada, cubre re-registros del mismo coche)
+const CAR_EXCLUSIONS=[
+  {from:"2026-09",plates:["2798MXM","7075NJM","7872MYM","6496MRV","2575MLV","1594NDD","7115NHB"]}
+];
+function exclSql(ym,col){
+  const pl=[...new Set(CAR_EXCLUSIONS.filter(e=>ym>=e.from).flatMap(e=>e.plates))];
+  if(!pl.length)return "";
+  return ` AND ${col} NOT IN (SELECT id FROM main.ng_public.fleet_car WHERE UPPER(REGEXP_REPLACE(reg_number,'[^A-Za-z0-9]','')) IN (${pl.map(p=>"'"+p+"'").join(",")}))`;
+}
+function campQuery(ym,inIds, preS, spanE) {
   return `WITH calc AS (
     SELECT pe.target_id id,
       CAST(CONVERT_TIMEZONE('Europe/Madrid', pe.start) AS DATE) wk,
@@ -145,7 +154,7 @@ function campQuery(inIds, preS, spanE) {
     JOIN ${NG}.conditional_campaigns_bonus_calculation bc ON bc.period_enrollment_id=pe.id
     LEFT JOIN ${NG}.conditional_campaigns_condition cond ON bc.condition_id=cond.id
     LEFT JOIN ${NG}.conditional_campaigns_bonus b ON bc.bonus_id=b.id
-    WHERE pe.target_type='car'
+    WHERE pe.target_type='car'${exclSql(ym,'pe.target_id')}
       AND pe.start >= TIMESTAMP'${preS} 00:00:00' - INTERVAL 1 DAY
       AND pe.start < TIMESTAMP'${spanE} 00:00:00'
     GROUP BY 1,2,3
@@ -165,12 +174,12 @@ async function fetchMonth(ym, inIds, today) {
   const preS = iso(addD(new Date(spanS + "T00:00:00Z"), -7));
   const mr = monthRange(ym), pr = monthRange(prevYm(ym));
   const [cw, pk, camp, cm, dm, dp, pa] = await Promise.all([
-    runSql(`SELECT p.driver_car_id id, MAX(c.reg_number) reg, p.company_id cid, CAST(DATE_TRUNC('week',p.created_date_local) AS DATE) wk, ROUND(SUM((p.has_order+p.waiting_orders)/60.0),1) oh, ROUND(SUM(p.has_order/60.0),1) busy, ROUND(SUM(p.gmv_eur),2) gmv, SUM(p.finished_rides) rides, SUM(p.accepted_orders_tries) acc, SUM(${CXL}) cxl FROM ${PD} p LEFT JOIN ${NG}.fleet_car c ON p.driver_car_id=c.id WHERE p.company_id IN (${inIds}) AND p.driver_car_id > 0 AND p.created_date_local BETWEEN '${preS}' AND '${spanE}' GROUP BY 1,3,4 LIMIT 5000`),
-    runSql(`SELECT driver_car_id id, CAST(DATE_TRUNC('week',CAST(created_hour_local AS DATE)) AS DATE) wk, ROUND(SUM(CASE WHEN ${PEAK_CASE} THEN has_order+waiting_orders ELSE 0 END)/60.0,1) peak FROM ${PDO} WHERE company_id IN (${inIds}) AND driver_car_id > 0 AND created_hour_local >= '${preS}' AND created_hour_local < DATE_ADD(DATE'${spanE}',1) GROUP BY 1,2 LIMIT 5000`),
-    runSql(campQuery(inIds, preS, spanE)),
-    runSql(`SELECT p.driver_car_id id, MAX(c.reg_number) reg, p.company_id cid, ROUND(SUM((p.has_order+p.waiting_orders)/60.0),1) oh, ROUND(SUM(p.has_order/60.0),1) busy, ROUND(SUM(p.gmv_eur),2) gmv, SUM(p.finished_rides) rides FROM ${PD} p LEFT JOIN ${NG}.fleet_car c ON p.driver_car_id=c.id WHERE p.company_id IN (${inIds}) AND p.driver_car_id > 0 AND p.created_date_local BETWEEN '${mr.s}' AND '${mr.e}' GROUP BY 1,3 LIMIT 5000`),
-    runSql(`SELECT p.driver_id id, MAX(COALESCE(NULLIF(TRIM(CONCAT_WS(' ',d.first_name,d.last_name)),''),d.display_name)) name, MAX(p.company_id) cid, ROUND(SUM(p.gmv_eur),2) gmv, ROUND(SUM((p.has_order+p.waiting_orders)/60.0),1) oh, ROUND(SUM(p.has_order/60.0),1) busy, SUM(p.finished_rides) rides, SUM(p.accepted_orders_tries) acc, SUM(${CXL}) cxl FROM ${PD} p LEFT JOIN ${NG}.vw_fleet_driver d ON d.target_id=p.driver_id AND d.company_id=p.company_id WHERE p.company_id IN (${inIds}) AND p.created_date_local BETWEEN '${mr.s}' AND '${mr.e}' GROUP BY 1 LIMIT 2000`),
-    runSql(`SELECT driver_id id, ROUND(SUM(CASE WHEN ${PEAK_CASE} THEN has_order+waiting_orders ELSE 0 END)/60.0,1) peak FROM ${PDO} WHERE company_id IN (${inIds}) AND created_hour_local >= '${mr.s}' AND created_hour_local < DATE_ADD(DATE'${mr.e}',1) GROUP BY 1 LIMIT 2000`),
+    runSql(`SELECT p.driver_car_id id, MAX(c.reg_number) reg, p.company_id cid, CAST(DATE_TRUNC('week',p.created_date_local) AS DATE) wk, ROUND(SUM((p.has_order+p.waiting_orders)/60.0),1) oh, ROUND(SUM(p.has_order/60.0),1) busy, ROUND(SUM(p.gmv_eur),2) gmv, SUM(p.finished_rides) rides, SUM(p.accepted_orders_tries) acc, SUM(${CXL}) cxl FROM ${PD} p LEFT JOIN ${NG}.fleet_car c ON p.driver_car_id=c.id WHERE p.company_id IN (${inIds})${exclSql(ym,'p.driver_car_id')} AND p.driver_car_id > 0 AND p.created_date_local BETWEEN '${preS}' AND '${spanE}' GROUP BY 1,3,4 LIMIT 5000`),
+    runSql(`SELECT driver_car_id id, CAST(DATE_TRUNC('week',CAST(created_hour_local AS DATE)) AS DATE) wk, ROUND(SUM(CASE WHEN ${PEAK_CASE} THEN has_order+waiting_orders ELSE 0 END)/60.0,1) peak FROM ${PDO} WHERE company_id IN (${inIds})${exclSql(ym,'driver_car_id')} AND driver_car_id > 0 AND created_hour_local >= '${preS}' AND created_hour_local < DATE_ADD(DATE'${spanE}',1) GROUP BY 1,2 LIMIT 5000`),
+    runSql(campQuery(ym, inIds, preS, spanE)),
+    runSql(`SELECT p.driver_car_id id, MAX(c.reg_number) reg, p.company_id cid, ROUND(SUM((p.has_order+p.waiting_orders)/60.0),1) oh, ROUND(SUM(p.has_order/60.0),1) busy, ROUND(SUM(p.gmv_eur),2) gmv, SUM(p.finished_rides) rides FROM ${PD} p LEFT JOIN ${NG}.fleet_car c ON p.driver_car_id=c.id WHERE p.company_id IN (${inIds})${exclSql(ym,'p.driver_car_id')} AND p.driver_car_id > 0 AND p.created_date_local BETWEEN '${mr.s}' AND '${mr.e}' GROUP BY 1,3 LIMIT 5000`),
+    runSql(`SELECT p.driver_id id, MAX(COALESCE(NULLIF(TRIM(CONCAT_WS(' ',d.first_name,d.last_name)),''),d.display_name)) name, MAX(p.company_id) cid, ROUND(SUM(p.gmv_eur),2) gmv, ROUND(SUM((p.has_order+p.waiting_orders)/60.0),1) oh, ROUND(SUM(p.has_order/60.0),1) busy, SUM(p.finished_rides) rides, SUM(p.accepted_orders_tries) acc, SUM(${CXL}) cxl FROM ${PD} p LEFT JOIN ${NG}.vw_fleet_driver d ON d.target_id=p.driver_id AND d.company_id=p.company_id WHERE p.company_id IN (${inIds})${exclSql(ym,'p.driver_car_id')} AND p.created_date_local BETWEEN '${mr.s}' AND '${mr.e}' GROUP BY 1 LIMIT 2000`),
+    runSql(`SELECT driver_id id, ROUND(SUM(CASE WHEN ${PEAK_CASE} THEN has_order+waiting_orders ELSE 0 END)/60.0,1) peak FROM ${PDO} WHERE company_id IN (${inIds})${exclSql(ym,'driver_car_id')} AND created_hour_local >= '${mr.s}' AND created_hour_local < DATE_ADD(DATE'${mr.e}',1) GROUP BY 1 LIMIT 2000`),
     runSql(`SELECT ROUND(SUM(gmv_eur),2) gmv, ROUND(SUM((has_order+waiting_orders)/60.0),1) oh, ROUND(SUM(has_order/60.0),1) busy, SUM(finished_rides) rides, COUNT(DISTINCT CASE WHEN finished_rides>0 THEN driver_car_id END) active FROM ${PD} WHERE company_id IN (${inIds}) AND driver_car_id > 0 AND created_date_local BETWEEN '${pr.s}' AND '${pr.e}' LIMIT 10`),
   ]);
   return { wks, preS, cw, pk, camp, cm, dm, dp, pa };
@@ -182,12 +191,30 @@ async function fetchMonth(ym, inIds, today) {
   const fleets = await loadFleets();
   const ids = Object.keys(fleets);
   if (!ids.length) { console.error("El sheet no tiene filas con FO=DOUBLEDIGIT"); process.exit(1); }
-  console.log(`Flotas DD: ${ids.length}`);
-  const inIds = ids.join(",");
+  console.log(`Flotas DD (sheet en vivo): ${ids.length}`);
+
+  // Histórico congelado: cada mes cerrado usa la lista de flotas que tenía al cerrarse.
+  // La primera ejecución tras cerrar un mes lo congela con la lista actual del sheet.
+  const HIST = path.join(ROOT, "fleets-history.json");
+  const history = fs.existsSync(HIST) ? JSON.parse(fs.readFileSync(HIST, "utf8")) : {};
+  const curYm = iso(today).slice(0, 7);
+  let histChanged = false;
+  for (const ym of monthList(today)) {
+    if (ym < curYm && !history[ym]) {
+      history[ym] = { frozenAt: new Date().toISOString(), fleets };
+      histChanged = true;
+      console.log(`Snapshot de flotas congelado para ${ym} (${ids.length} flotas)`);
+    }
+  }
+  if (histChanged) fs.writeFileSync(HIST, JSON.stringify(history, null, 1));
+  const fleetsFor = ym => (history[ym] ? history[ym].fleets : fleets);
+  const allFleets = { ...fleets };
+  Object.values(history).forEach(h => Object.entries(h.fleets).forEach(([k, v]) => { if (!allFleets[k]) allFleets[k] = v; }));
 
   const months = {};
   for (const ym of monthList(today)) {
     process.stdout.write(`Mes ${ym}… `);
+    const inIds = Object.keys(fleetsFor(ym)).join(",");
     const M = await fetchMonth(ym, inIds, today);
     if (!M) { console.log("sin semanas cerradas, omitido"); continue; }
     months[ym] = M;
@@ -208,7 +235,7 @@ async function fetchMonth(ym, inIds, today) {
   }
 
   const buildTs = new Intl.DateTimeFormat("es-ES", { timeZone: "Europe/Madrid", dateStyle: "medium", timeStyle: "short" }).format(new Date());
-  const data = { fleets, months };
+  const data = { fleets: allFleets, months };
   const json = JSON.stringify(data).replace(/</g, "\\u003c");
   const tpl = fs.readFileSync(path.join(ROOT, "template.html"), "utf8");
   const html = tpl.replace("__DD_DATA__", json).replace("__BUILD_TS__", buildTs);
